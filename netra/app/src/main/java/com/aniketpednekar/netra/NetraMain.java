@@ -3,30 +3,30 @@ package com.aniketpednekar.netra;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.hardware.Camera;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.view.GestureDetectorCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
+import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Toast;
 
-import java.io.FileNotFoundException;
+import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
-import android.support.v4.view.GestureDetectorCompat;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
-import android.os.Handler;
-import android.util.Log;
-import android.view.GestureDetector;
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
@@ -90,17 +90,31 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
         jpegCallback = new Camera.PictureCallback() {
             @Override
             public void onPictureTaken(byte[] data, Camera camera) {
+                Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
                 FileOutputStream outputStream = null;
                 try {
-                    outputStream = new FileOutputStream(String.format("/sdcard/netra/%d.jpg", System.currentTimeMillis()));
+                    File path = new File(Environment.getExternalStorageDirectory().getPath() + "/netra/");
+                    if (!path.exists()) path.mkdirs();
+                    File cameraFile = new File(path, "netra_" + String.valueOf(System.currentTimeMillis()) + ".jpg");
+                    /*
+                    outputStream = new FileOutputStream(cameraFile);
                     outputStream.write(data);
                     outputStream.close();
-                } catch (FileNotFoundException e){
+                    */
+                    outputStream = new FileOutputStream(cameraFile);
+                    bitmap = rotateImage(bitmap, 90);
 
-                } catch (IOException e){
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
+                    outputStream.flush();
+                    outputStream.close();
 
-                }
-                Toast.makeText(getApplicationContext(),"Pic saved",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(),"Pic saved",Toast.LENGTH_SHORT).show();
+                } catch (Exception e){
+                    Toast.makeText(getApplicationContext(),"Pic not saved " + e.getMessage(),Toast.LENGTH_SHORT).show();
+                }/* catch (IOException e){
+                    Toast.makeText(getApplicationContext(),"Pic not saved " + e.getMessage(),Toast.LENGTH_SHORT).show();
+                }*/
+                //Toast.makeText(getApplicationContext(),"Pic saved",Toast.LENGTH_SHORT).show();
                 refreshCamera();
 
             }
@@ -128,7 +142,38 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
         mDetector.setOnDoubleTapListener(this);
     }
 
+    public void requestWritePermissions(){
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                Toast.makeText(getApplicationContext(),"Requesting Write Permissions", Toast.LENGTH_SHORT).show();
+            } else {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        0);
+            }
+        }
+    }
+
+    public void requestCameraPermissions(){
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.CAMERA)) {
+                Toast.makeText(getApplicationContext(),"Requesting Write Permissions", Toast.LENGTH_SHORT).show();
+            } else {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.CAMERA},
+                        0);
+            }
+        }
+    }
+
     public void captureImage(View v){
+        requestWritePermissions();
         camera.takePicture(null,null,jpegCallback);
     }
 
@@ -261,33 +306,7 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-
-        // Here, 'this' is the current activity
-        if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.CAMERA)
-                != PackageManager.PERMISSION_GRANTED) {
-
-            // Should we show an explanation?
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-                    Manifest.permission.CAMERA)) {
-                Toast.makeText(getApplicationContext(),"Requesting Camera Access", Toast.LENGTH_SHORT).show();
-                // Show an expanation to the user *asynchronously* -- don't block
-                // this thread waiting for the user's response! After the user
-                // sees the explanation, try again to request the permission.
-
-            } else {
-
-                // No explanation needed, we can request the permission.
-
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.CAMERA},
-                        0);
-
-                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
-                // app-defined int constant. The callback method gets the
-                // result of the request.
-            }
-        }
+        requestCameraPermissions();
 
         Log.d("SURFACE CREATED","SURFACE CREATED");
         try{
@@ -298,7 +317,10 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
                 Log.d("CAMERA RELEASED","CAMERA RELEASED");
             }
             camera = Camera.open();
+
             camera.setDisplayOrientation(90);
+
+            //camera.setDisplayOrientation(getRotationAngle(0, camera));
         }
         catch (Exception e){
             Log.d("CAMERA NOT CREATED",e.getMessage());
@@ -306,7 +328,6 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
         }
 
         Camera.Parameters params = camera.getParameters();
-        //params.setPreviewSize(640,480);
         camera.setParameters(params);
 
         try{
@@ -330,6 +351,38 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
         camera = null;
 
     }
+
+    public int getRotationAngle(
+            int cameraId, android.hardware.Camera camera){
+        android.hardware.Camera.CameraInfo info =
+                new android.hardware.Camera.CameraInfo();
+        android.hardware.Camera.getCameraInfo(cameraId, info);
+        int rotation = this.getWindowManager().getDefaultDisplay()
+                .getRotation();
+        int degrees = 0;
+        switch (rotation) {
+            case Surface.ROTATION_0: degrees = 0; break;
+            case Surface.ROTATION_90: degrees = 90; break;
+            case Surface.ROTATION_180: degrees = 180; break;
+            case Surface.ROTATION_270: degrees = 270; break;
+        }
+
+        int result;
+        if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+            result = (info.orientation + degrees) % 360;
+            result = (360 - result) % 360;  // compensate the mirror
+        } else {  // back-facing
+            result = (info.orientation - degrees + 360) % 360;
+        }
+        return result;
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        camera.setDisplayOrientation(90);
+        //camera.setDisplayOrientation(getRotationAngle(0, camera));
+    }
     
      @Override
     public boolean onTouchEvent(MotionEvent event){
@@ -340,7 +393,7 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
 
     @Override
     public boolean onDown(MotionEvent event) {
-        Log.d(DEBUG_TAG,"onDown: " + event.toString());
+        Log.d(DEBUG_TAG, "onDown: " + event.toString());
         return true;
     }
 
@@ -381,6 +434,15 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
     }
 
 
+    public static Bitmap rotateImage(Bitmap source, float angle) {
+        Bitmap retVal;
+
+        Matrix matrix = new Matrix();
+        matrix.postRotate(angle);
+        retVal = Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
+
+        return retVal;
+    }
 
     @Override
     public void onLongPress(MotionEvent event) {

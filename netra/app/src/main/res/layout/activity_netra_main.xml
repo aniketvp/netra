@@ -13,6 +13,7 @@
             android:id="@+id/surfaceView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:onClick="captureImage"
             />
 
         <TextView android:id="@+id/fullscreen_content" android:layout_width="match_parent"
@@ -37,7 +38,6 @@
 
             <ToggleButton android:id="@+id/texttoggle"
                 android:layout_width="50dp" android:layout_height="50dp"
-                android:layout_marginLeft="20dp"
                 android:textOn=""
                 android:textOff=""
                 android:checked="true"
@@ -48,6 +48,7 @@
                 android:textOn=""
                 android:textOff=""
                 android:checked="true"
+                android:layout_marginLeft="20dp"
                 android:background="@drawable/modetoggle"/>
 
             <ToggleButton android:id="@+id/volumetoggle"

@@ -16,7 +16,7 @@
             android:onClick="captureImage"
             />
 
-        <TextView android:id="@+id/fullscreen_content" android:layout_width="match_parent"
+        <TextView android:id="@+id/captiontext" android:layout_width="match_parent"
             android:layout_height="match_parent" android:keepScreenOn="true" android:textColor="#33b5e5"
             android:textStyle="bold" android:textSize="50sp" android:gravity="center"
             android:text="@string/dummy_content"

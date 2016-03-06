@@ -8,9 +8,10 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.hardware.Camera;
+import android.media.AudioManager;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
+import android.speech.tts.TextToSpeech;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GestureDetectorCompat;
@@ -23,16 +24,17 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
-import java.io.File;
 import java.io.FileOutputStream;
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
  * status bar and navigation/system bar) with user interaction.
  */
-public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callback, GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener{
+public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callback, GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener, TextToSpeech.OnUtteranceCompletedListener{
 
     Camera camera;
     SurfaceView surfaceView;
@@ -42,7 +44,9 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
     Camera.PictureCallback jpegCallback;
     Camera.ShutterCallback shutterCallback;
 
-
+    ToggleButton modeToggle, volumeToggle, textToggle;
+    TextToSpeech t1;
+    AudioManager audioManager;
 
     /**
      * Whether or not the system UI should be auto-hidden after
@@ -72,11 +76,24 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
     private static final int SWIPE_THRESHOLD = 100;
     private static final int SWIPE_VELOCITY_THRESHOLD = 100;
 
+    public void setOutput(String caption){
+        TextView captionText = (TextView) findViewById(R.id.captiontext);
+        captionText.setText(caption);
+        captionText.setVisibility(View.VISIBLE);
+    }
+
+    public TextView getCaptionTextView(){
+        return (TextView) findViewById(R.id.captiontext);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_netra_main);
+
+        TextView captionText = (TextView) findViewById(R.id.captiontext);
+        captionText.setVisibility(View.INVISIBLE);
 
 
 
@@ -93,28 +110,40 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
                 Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
                 FileOutputStream outputStream = null;
                 try {
-                    File path = new File(Environment.getExternalStorageDirectory().getPath() + "/netra/");
-                    if (!path.exists()) path.mkdirs();
-                    File cameraFile = new File(path, "netra_" + String.valueOf(System.currentTimeMillis()) + ".jpg");
-                    /*
-                    outputStream = new FileOutputStream(cameraFile);
-                    outputStream.write(data);
-                    outputStream.close();
-                    */
-                    outputStream = new FileOutputStream(cameraFile);
-                    bitmap = rotateImage(bitmap, 90);
+                    setOutput(getImgurUrl(data));
+                    //Toast.makeText(getApplicationContext(),getImgurUrl(data),Toast.LENGTH_SHORT).show();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
 
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
-                    outputStream.flush();
-                    outputStream.close();
-
-                    Toast.makeText(getApplicationContext(),"Pic saved",Toast.LENGTH_SHORT).show();
-                } catch (Exception e){
-                    Toast.makeText(getApplicationContext(),"Pic not saved " + e.getMessage(),Toast.LENGTH_SHORT).show();
-                }/* catch (IOException e){
-                    Toast.makeText(getApplicationContext(),"Pic not saved " + e.getMessage(),Toast.LENGTH_SHORT).show();
-                }*/
-                //Toast.makeText(getApplicationContext(),"Pic saved",Toast.LENGTH_SHORT).show();
+//                try {
+//                    File path = new File(Environment.getExternalStorageDirectory().getPath() + "/netra/");
+//                    if (!path.exists()) path.mkdirs();
+//                    File cameraFile = new File(path, "netra_" + String.valueOf(System.currentTimeMillis()) + ".jpg");
+//                    /*
+//                    outputStream = new FileOutputStream(cameraFile);
+//                    outputStream.write(data);
+//                    outputStream.close();
+//                    */
+//                    outputStream = new FileOutputStream(cameraFile);
+//
+//                    //bitmap = rotateImage(bitmap, 90);
+//
+//                    ByteArrayOutputStream stream = new ByteArrayOutputStream();
+//                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+//                    byte[] rotatedData = stream.toByteArray();
+//                    Toast.makeText(getApplicationContext(),getAlgomusDescription(rotatedData),Toast.LENGTH_SHORT).show();
+//                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
+//                    outputStream.flush();
+//                    outputStream.close();
+//
+//                    Toast.makeText(getApplicationContext(),"Pic saved",Toast.LENGTH_SHORT).show();
+//                } catch (Exception e){
+//                    Toast.makeText(getApplicationContext(),"Pic not saved " + e.getMessage(),Toast.LENGTH_SHORT).show();
+//                }/* catch (IOException e){
+//                    Toast.makeText(getApplicationContext(),"Pic not saved " + e.getMessage(),Toast.LENGTH_SHORT).show();
+//                }*/
+//                //Toast.makeText(getApplicationContext(),"Pic saved",Toast.LENGTH_SHORT).show();
                 refreshCamera();
 
             }
@@ -152,7 +181,7 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
             } else {
                 ActivityCompat.requestPermissions(this,
                         new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                        0);
+                        1);
             }
         }
     }
@@ -168,6 +197,21 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
                 ActivityCompat.requestPermissions(this,
                         new String[]{Manifest.permission.CAMERA},
                         0);
+            }
+        }
+    }
+
+    public void requestInternetPermissions(){
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.INTERNET)
+                != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.INTERNET)) {
+                Toast.makeText(getApplicationContext(),"Requesting Write Permissions", Toast.LENGTH_SHORT).show();
+            } else {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.INTERNET},
+                        2);
             }
         }
     }
@@ -307,6 +351,7 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
         requestCameraPermissions();
+        requestInternetPermissions();
 
         Log.d("SURFACE CREATED","SURFACE CREATED");
         try{
@@ -444,6 +489,12 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
         return retVal;
     }
 
+    public String getImgurUrl(byte[] image)
+            throws Exception {
+        new RetrieveCaption(getApplicationContext()).execute(image);
+        return "temp";
+    }
+
     @Override
     public void onLongPress(MotionEvent event) {
         Log.d(DEBUG_TAG, "onLongPress: " + event.toString());
@@ -496,5 +547,10 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
 
     public void onSwipeBottom() {
 
+    }
+
+    @Override
+    public void onUtteranceCompleted(String utteranceId) {
+        Log.i("TAG", "utterance complete");
     }
 }

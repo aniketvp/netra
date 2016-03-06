@@ -33,27 +33,27 @@
             android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:layout_gravity="bottom|center_horizontal"
             android:layout_marginBottom="40dp"
-            android:background="@color/black_overlay" android:orientation="horizontal"
+            android:orientation="horizontal"
             tools:ignore="UselessParent">
 
             <ToggleButton android:id="@+id/texttoggle"
-                android:layout_width="50dp" android:layout_height="50dp"
+                android:layout_width="78dp" android:layout_height="78dp"
                 android:textOn=""
                 android:textOff=""
                 android:checked="true"
                 android:background="@drawable/texttoggle"/>
 
             <ToggleButton android:id="@+id/modetoggle"
-                android:layout_width="50dp" android:layout_height="50dp"
+                android:layout_width="96dp" android:layout_height="96dp"
                 android:textOn=""
                 android:textOff=""
                 android:checked="true"
-                android:layout_marginLeft="20dp"
+                android:layout_marginLeft="30dp"
                 android:background="@drawable/modetoggle"/>
 
             <ToggleButton android:id="@+id/volumetoggle"
-                android:layout_width="50dp" android:layout_height="50dp"
-                android:layout_marginLeft="20dp"
+                android:layout_width="78dp" android:layout_height="78dp"
+                android:layout_marginLeft="30dp"
                 android:textOn=""
                 android:textOff=""
                 android:checked="true"

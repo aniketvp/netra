@@ -2,6 +2,8 @@ package com.aniketpednekar.netra;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
@@ -24,11 +26,13 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.widget.CompoundButton;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import java.io.FileOutputStream;
+import java.util.Locale;
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
@@ -47,6 +51,7 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
     ToggleButton modeToggle, volumeToggle, textToggle;
     TextToSpeech t1;
     AudioManager audioManager;
+    TextView captionTextView;
 
     /**
      * Whether or not the system UI should be auto-hidden after
@@ -82,18 +87,14 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
         captionText.setVisibility(View.VISIBLE);
     }
 
-    public TextView getCaptionTextView(){
-        return (TextView) findViewById(R.id.captiontext);
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_netra_main);
 
-        TextView captionText = (TextView) findViewById(R.id.captiontext);
-        captionText.setVisibility(View.INVISIBLE);
+        captionTextView = (TextView) findViewById(R.id.captiontext);
+        captionTextView.setVisibility(View.INVISIBLE);
 
 
 
@@ -110,7 +111,7 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
                 Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
                 FileOutputStream outputStream = null;
                 try {
-                    setOutput(getImgurUrl(data));
+                    getImgurUrl(data);
                     //Toast.makeText(getApplicationContext(),getImgurUrl(data),Toast.LENGTH_SHORT).show();
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -169,6 +170,67 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
         
         mDetector = new GestureDetectorCompat(this,this);
         mDetector.setOnDoubleTapListener(this);
+
+        //AudioManager
+        audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
+//TTS
+        t1=new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+                if (status == TextToSpeech.SUCCESS) {
+                    int result = t1.setLanguage(Locale.US);
+                    Toast.makeText(NetraMain.this,"inside init", Toast.LENGTH_SHORT).show();
+
+                    if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                        Log.e("TTS", "This Language is not supported");
+                        Intent installIntent = new Intent();
+                        installIntent.setAction(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
+                        startActivity(installIntent);
+                    } else {
+                        t1.speak("Welcome to Netra", TextToSpeech.QUEUE_FLUSH, null);
+                    }
+                }
+
+            }
+        });
+
+
+
+//Handling Toggle Buttons
+        modeToggle = (ToggleButton)findViewById(R.id.modetoggle);
+        volumeToggle = (ToggleButton)findViewById(R.id.volumetoggle);
+        textToggle = (ToggleButton)findViewById(R.id.texttoggle);
+
+        modeToggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+
+                if (isChecked) {
+                } else {
+                }
+            }
+        });
+
+        textToggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+
+                if (isChecked) {
+                } else {
+                }
+            }
+        });
+
+        volumeToggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+
+                if (isChecked) {
+                } else {
+                }
+            }
+        });
+
     }
 
     public void requestWritePermissions(){
@@ -489,10 +551,10 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
         return retVal;
     }
 
-    public String getImgurUrl(byte[] image)
+    public void getImgurUrl(byte[] image)
             throws Exception {
-        new RetrieveCaption(getApplicationContext()).execute(image);
-        return "temp";
+        new RetrieveCaption(getApplicationContext(), captionTextView, t1).execute(image);
+        //return "temp";
     }
 
     @Override

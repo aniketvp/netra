@@ -2,7 +2,10 @@ package com.aniketpednekar.netra;
 
 import android.content.Context;
 import android.os.AsyncTask;
+import android.speech.tts.TextToSpeech;
 import android.util.Log;
+import android.view.View;
+import android.widget.TextView;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -25,9 +28,13 @@ public class RetrieveCaption extends AsyncTask<byte[], Void, String> {
 
     private Exception exception;
     private Context context;
+    private TextView captionTextView;
+    private TextToSpeech tts;
 
-    public RetrieveCaption(Context appcontext){
+    public RetrieveCaption(Context appcontext, TextView captionTv, TextToSpeech t1){
         context = appcontext;
+        captionTextView = captionTv;
+        tts = t1;
     }
 
     protected String doInBackground(byte[]... params) {
@@ -56,7 +63,7 @@ public class RetrieveCaption extends AsyncTask<byte[], Void, String> {
             String data2  = reader2.getString("caption");
 
             Log.d("ALGOMUS RESP", data2);
-            return algomus;
+            return data2;
 
         } catch (Exception e) {
             this.exception = e;
@@ -67,6 +74,13 @@ public class RetrieveCaption extends AsyncTask<byte[], Void, String> {
 
     @Override
     protected void onPostExecute(String feed){
+        Log.d("feed", feed);
+        Log.d("TAG", "IN PostExecute");
+        captionTextView.setText(feed);
+        Log.d("TAG", "IN PostExecute2");
+        captionTextView.setVisibility(View.VISIBLE);
+        Log.d("TAG", "IN PostExecute3");
+        tts.speak(feed, TextToSpeech.QUEUE_FLUSH, null);
         /*try{
             JSONObject reader = new JSONObject(feed);
             String data  = reader.getString("caption");

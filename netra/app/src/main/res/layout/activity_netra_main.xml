@@ -27,19 +27,38 @@
          android:fitsSystemWindows. -->
     <FrameLayout android:layout_width="match_parent" android:layout_height="match_parent"
         android:fitsSystemWindows="true">
-        <!-- USE THIS SECTION TO ADD ITEMS ON SINGLE TAP
+
         <LinearLayout android:id="@+id/fullscreen_content_controls" style="?metaButtonBarStyle"
-            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="40dp"
             android:background="@color/black_overlay" android:orientation="horizontal"
             tools:ignore="UselessParent">
 
-            <Button android:id="@+id/dummy_button" style="?metaButtonBarButtonStyle"
-                android:layout_width="0dp" android:layout_height="wrap_content"
-                android:layout_weight="1" android:text="@string/dummy_button"/>
+            <ToggleButton android:id="@+id/texttoggle"
+                android:layout_width="50dp" android:layout_height="50dp"
+                android:layout_marginLeft="20dp"
+                android:textOn=""
+                android:textOff=""
+                android:checked="true"
+                android:background="@drawable/texttoggle"/>
+
+            <ToggleButton android:id="@+id/modetoggle"
+                android:layout_width="50dp" android:layout_height="50dp"
+                android:textOn=""
+                android:textOff=""
+                android:checked="true"
+                android:background="@drawable/modetoggle"/>
+
+            <ToggleButton android:id="@+id/volumetoggle"
+                android:layout_width="50dp" android:layout_height="50dp"
+                android:layout_marginLeft="20dp"
+                android:textOn=""
+                android:textOff=""
+                android:checked="true"
+                android:background="@drawable/volumetoggle"/>
 
         </LinearLayout>
-        -->
     </FrameLayout>
 
 </FrameLayout>

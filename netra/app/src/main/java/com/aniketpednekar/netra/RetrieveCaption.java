@@ -7,6 +7,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
@@ -41,14 +42,19 @@ public class RetrieveCaption extends AsyncTask<byte[], Void, String> {
         try {
             HttpClient httpClient = new DefaultHttpClient();
             HttpPost httpPost = new HttpPost("https://api.imgur.com/3/image");
-            httpPost.setHeader("Authorization", "Client-ID 3f0030c1273b4e7");
+            httpPost.setHeader("Authorization", "Client-ID 24ab1294f988a14");
             System.out.println("Length of the byte array sent" + params[0].length);
             httpPost.setEntity(new ByteArrayEntity(params[0]));
             HttpResponse response = httpClient.execute(httpPost);
+            if(response.getStatusLine().getStatusCode()!=200)
+                return null;
+            HttpEntity ent = response.getEntity();
 
-            String imgur = EntityUtils.toString(response.getEntity());
+            String imgur = EntityUtils.toString(ent);
+            Log.d("IMGUR", imgur);
             JSONObject reader = new JSONObject(imgur);
             JSONObject data = reader.getJSONObject("data");
+
             String link = data.getString("link");
             Log.d("IMGUR LINK", link);
             HttpClient httpClient2 = new DefaultHttpClient();
@@ -58,6 +64,8 @@ public class RetrieveCaption extends AsyncTask<byte[], Void, String> {
             UrlEncodedFormEntity entity = new UrlEncodedFormEntity(nameValuePairs,"UTF-8");
             httpPost2.setEntity(entity);
             HttpResponse response2 = httpClient2.execute(httpPost2);
+            if(response2.getStatusLine().getStatusCode()!=200)
+                return null;
             String algomus = EntityUtils.toString(response2.getEntity());
             JSONObject reader2 = new JSONObject(algomus);
             String data2  = reader2.getString("caption");
@@ -74,12 +82,16 @@ public class RetrieveCaption extends AsyncTask<byte[], Void, String> {
 
     @Override
     protected void onPostExecute(String feed){
+        if(feed==null){
+            String pleaseTry = "Please try again";
+            captionTextView.setText(pleaseTry);
+            captionTextView.setVisibility(View.VISIBLE);
+            tts.speak(pleaseTry, TextToSpeech.QUEUE_FLUSH, null);
+            return;
+        }
         Log.d("feed", feed);
-        Log.d("TAG", "IN PostExecute");
         captionTextView.setText(feed);
-        Log.d("TAG", "IN PostExecute2");
         captionTextView.setVisibility(View.VISIBLE);
-        Log.d("TAG", "IN PostExecute3");
         tts.speak(feed, TextToSpeech.QUEUE_FLUSH, null);
         /*try{
             JSONObject reader = new JSONObject(feed);

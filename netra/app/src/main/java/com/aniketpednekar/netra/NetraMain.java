@@ -11,7 +11,6 @@ import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.hardware.Camera;
 import android.media.AudioManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.speech.tts.TextToSpeech;
@@ -91,6 +90,10 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        requestInternetPermissions();
+        //requestWritePermissions();
+        requestCameraPermissions();
 
         setContentView(R.layout.activity_netra_main);
 
@@ -186,7 +189,6 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
             public void onInit(int status) {
                 if (status == TextToSpeech.SUCCESS) {
                     int result = t1.setLanguage(Locale.US);
-                    Toast.makeText(NetraMain.this,"inside init", Toast.LENGTH_SHORT).show();
 
                     if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
                         Log.e("TTS", "This Language is not supported");
@@ -415,8 +417,6 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        requestCameraPermissions();
-        requestInternetPermissions();
 
         Log.d("SURFACE CREATED","SURFACE CREATED");
         try{
@@ -428,7 +428,7 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
             }
             camera = Camera.open();
 
-            camera.setDisplayOrientation(90);
+            //camera.setDisplayOrientation(90);
 
             //camera.setDisplayOrientation(getRotationAngle(0, camera));
         }
@@ -580,7 +580,7 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
     @Override
     public boolean onSingleTapUp(MotionEvent event) {
         Log.d(DEBUG_TAG, "onSingleTapUp: " + event.toString());
-        requestWritePermissions();
+
         camera.takePicture(null, null, jpegCallback);
         return true;
     }

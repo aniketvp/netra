@@ -13,7 +13,6 @@
             android:id="@+id/surfaceView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:onClick="captureImage"
             />
 
         <TextView android:id="@+id/captiontext" android:layout_width="match_parent"

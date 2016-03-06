@@ -11,6 +11,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.hardware.Camera;
 import android.media.AudioManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.speech.tts.TextToSpeech;
@@ -52,7 +53,7 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
     TextToSpeech t1;
     AudioManager audioManager;
     TextView captionTextView;
-
+    int mute = 0;
     /**
      * Whether or not the system UI should be auto-hidden after
      * {@link #AUTO_HIDE_DELAY_MILLIS} milliseconds.
@@ -173,7 +174,13 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
 
         //AudioManager
         audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
-//TTS
+        if(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)==0){
+            mute = 1;
+        }else{
+            mute = 0;
+        }
+
+        //TTS
         t1=new TextToSpeech(this, new TextToSpeech.OnInitListener() {
             @Override
             public void onInit(int status) {
@@ -196,7 +203,7 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
 
 
 
-//Handling Toggle Buttons
+        //Handling Toggle Buttons
         modeToggle = (ToggleButton)findViewById(R.id.modetoggle);
         volumeToggle = (ToggleButton)findViewById(R.id.volumetoggle);
         textToggle = (ToggleButton)findViewById(R.id.texttoggle);
@@ -278,10 +285,6 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
         }
     }
 
-    public void captureImage(View v){
-        requestWritePermissions();
-        camera.takePicture(null,null,jpegCallback);
-    }
 
     public void refreshCamera(){
         if (surfaceHolder.getSurface()==null){
@@ -565,7 +568,7 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
     @Override
     public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX,
                             float distanceY) {
-        Log.d(DEBUG_TAG, "onScroll: " + e1.toString()+e2.toString());
+        Log.d(DEBUG_TAG, "onScroll: " + e1.toString() + e2.toString());
         return true;
     }
 
@@ -577,6 +580,8 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
     @Override
     public boolean onSingleTapUp(MotionEvent event) {
         Log.d(DEBUG_TAG, "onSingleTapUp: " + event.toString());
+        requestWritePermissions();
+        camera.takePicture(null, null, jpegCallback);
         return true;
     }
 
@@ -597,7 +602,15 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
         Log.d(DEBUG_TAG, "onSingleTapConfirmed: " + event.toString());
         return true;
     }
-    
+
+    public void onPause(){
+        if(t1 !=null){
+            t1.stop();
+            t1.shutdown();
+        }
+        super.onPause();
+    }
+
     public void onSwipeRight() {
     }
 
@@ -605,14 +618,22 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
     }
 
     public void onSwipeTop() {
+        audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC,
+                AudioManager.ADJUST_RAISE, AudioManager.FLAG_SHOW_UI);
     }
 
     public void onSwipeBottom() {
+        audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC,
+                AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI);
 
+    }
+
+    public void changeMode(){
+        //TODO: use this to changeMode - call appropriately from both swipeLeft/swipeRight or ToggleButton onCheckChanged
     }
 
     @Override
     public void onUtteranceCompleted(String utteranceId) {
-        Log.i("TAG", "utterance complete");
+        Log.d("TAG", "utterance complete");
     }
 }

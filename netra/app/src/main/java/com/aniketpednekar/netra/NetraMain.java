@@ -1,18 +1,42 @@
 package com.aniketpednekar.netra;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
+import android.content.pm.PackageManager;
+import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.MotionEvent;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
+import android.widget.Toast;
+
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
  * status bar and navigation/system bar) with user interaction.
  */
-public class NetraMain extends AppCompatActivity {
+public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callback{
+
+    Camera camera;
+    SurfaceView surfaceView;
+    SurfaceHolder surfaceHolder;
+
+    Camera.PictureCallback rawCallback;
+    Camera.PictureCallback jpegCallback;
+    Camera.ShutterCallback shutterCallback;
+
+
+
     /**
      * Whether or not the system UI should be auto-hidden after
      * {@link #AUTO_HIDE_DELAY_MILLIS} milliseconds.
@@ -41,6 +65,34 @@ public class NetraMain extends AppCompatActivity {
 
         setContentView(R.layout.activity_netra_main);
 
+
+
+
+        surfaceView = (SurfaceView) findViewById(R.id.surfaceView );
+        surfaceHolder = surfaceView.getHolder();
+
+        surfaceHolder.addCallback(this);
+        surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+
+        jpegCallback = new Camera.PictureCallback() {
+            @Override
+            public void onPictureTaken(byte[] data, Camera camera) {
+                FileOutputStream outputStream = null;
+                try {
+                    outputStream = new FileOutputStream(String.format("/sdcard/netra/%d.jpg", System.currentTimeMillis()));
+                    outputStream.write(data);
+                    outputStream.close();
+                } catch (FileNotFoundException e){
+
+                } catch (IOException e){
+
+                }
+                Toast.makeText(getApplicationContext(),"Pic saved",Toast.LENGTH_SHORT).show();
+                refreshCamera();
+
+            }
+        };
+
         mVisible = true;
         mControlsView = findViewById(R.id.fullscreen_content_controls);
         mContentView = findViewById(R.id.fullscreen_content);
@@ -58,6 +110,29 @@ public class NetraMain extends AppCompatActivity {
         // operations to prevent the jarring behavior of controls going away
         // while interacting with the UI.
         findViewById(R.id.dummy_button).setOnTouchListener(mDelayHideTouchListener);
+    }
+
+    public void captureImage(View v){
+        camera.takePicture(null,null,jpegCallback);
+    }
+
+    public void refreshCamera(){
+        if (surfaceHolder.getSurface()==null){
+            return;
+        }
+
+        try{
+            camera.stopPreview();
+        }
+        catch (Exception e){
+        }
+
+        try{
+            camera.setPreviewDisplay(surfaceHolder);
+            camera.startPreview();
+        }
+        catch (Exception e){
+        }
     }
 
     @Override
@@ -164,5 +239,77 @@ public class NetraMain extends AppCompatActivity {
     private void delayedHide(int delayMillis) {
         mHideHandler.removeCallbacks(mHideRunnable);
         mHideHandler.postDelayed(mHideRunnable, delayMillis);
+    }
+
+    @Override
+    public void surfaceCreated(SurfaceHolder holder) {
+
+        // Here, 'this' is the current activity
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            // Should we show an explanation?
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.CAMERA)) {
+                Toast.makeText(getApplicationContext(),"Requesting Camera Access", Toast.LENGTH_SHORT).show();
+                // Show an expanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+
+            } else {
+
+                // No explanation needed, we can request the permission.
+
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.CAMERA},
+                        0);
+
+                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                // app-defined int constant. The callback method gets the
+                // result of the request.
+            }
+        }
+
+        Log.d("SURFACE CREATED","SURFACE CREATED");
+        try{
+
+            if(camera!=null) {
+                Log.d("CAMERA NULL","NULL");
+                camera.release();
+                Log.d("CAMERA RELEASED","CAMERA RELEASED");
+            }
+            camera = Camera.open();
+            camera.setDisplayOrientation(90);
+        }
+        catch (Exception e){
+            Log.d("CAMERA NOT CREATED",e.getMessage());
+            return;
+        }
+
+        Camera.Parameters params = camera.getParameters();
+        //params.setPreviewSize(640,480);
+        camera.setParameters(params);
+
+        try{
+            camera.setPreviewDisplay(surfaceHolder);
+            camera.startPreview();
+        }
+        catch (Exception e){
+        }
+    }
+
+    @Override
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+
+    }
+
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder) {
+
+        camera.stopPreview();
+        camera.release();
+        camera = null;
+
     }
 }

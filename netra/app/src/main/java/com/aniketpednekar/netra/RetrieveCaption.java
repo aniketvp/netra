@@ -31,11 +31,13 @@ public class RetrieveCaption extends AsyncTask<byte[], Void, String> {
     private Context context;
     private TextView captionTextView;
     private TextToSpeech tts;
+    private boolean showText;
 
-    public RetrieveCaption(Context appcontext, TextView captionTv, TextToSpeech t1){
+    public RetrieveCaption(Context appcontext, TextView captionTv, TextToSpeech t1, boolean st){
         context = appcontext;
         captionTextView = captionTv;
         tts = t1;
+        showText = st;
     }
 
     protected String doInBackground(byte[]... params) {
@@ -85,13 +87,21 @@ public class RetrieveCaption extends AsyncTask<byte[], Void, String> {
         if(feed==null){
             String pleaseTry = "Please try again";
             captionTextView.setText(pleaseTry);
-            captionTextView.setVisibility(View.VISIBLE);
+            if(showText)
+                captionTextView.setVisibility(View.VISIBLE);
             tts.speak(pleaseTry, TextToSpeech.QUEUE_FLUSH, null);
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            captionTextView.setVisibility(View.INVISIBLE);
             return;
         }
         Log.d("feed", feed);
         captionTextView.setText(feed);
-        captionTextView.setVisibility(View.VISIBLE);
+        if(showText)
+            captionTextView.setVisibility(View.VISIBLE);
         tts.speak(feed, TextToSpeech.QUEUE_FLUSH, null);
         /*try{
             JSONObject reader = new JSONObject(feed);

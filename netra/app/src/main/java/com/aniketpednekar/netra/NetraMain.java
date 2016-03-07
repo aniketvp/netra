@@ -11,9 +11,11 @@ import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.hardware.Camera;
 import android.media.AudioManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GestureDetectorCompat;
@@ -38,7 +40,7 @@ import java.util.Locale;
  * An example full-screen activity that shows and hides the system UI (i.e.
  * status bar and navigation/system bar) with user interaction.
  */
-public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callback, GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener, TextToSpeech.OnUtteranceCompletedListener{
+public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callback, GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener{
 
     Camera camera;
     SurfaceView surfaceView;
@@ -52,6 +54,10 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
     TextToSpeech t1;
     AudioManager audioManager;
     TextView captionTextView;
+    boolean isSpeaking = false;
+    boolean algomusMode = false;
+    boolean showText = true;
+
     int mute = 0;
     /**
      * Whether or not the system UI should be auto-hidden after
@@ -115,7 +121,10 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
                 Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
                 FileOutputStream outputStream = null;
                 try {
-                    getImgurUrl(data);
+                    if(algomusMode)
+                        getAlgomus(data);
+                    else
+                        getClarifai(data);
                     //Toast.makeText(getApplicationContext(),getImgurUrl(data),Toast.LENGTH_SHORT).show();
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -183,7 +192,6 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
             mute = 0;
         }
 
-        //TTS
         t1=new TextToSpeech(this, new TextToSpeech.OnInitListener() {
             @Override
             public void onInit(int status) {
@@ -198,10 +206,34 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
                     } else {
                         t1.speak("Welcome to Netra", TextToSpeech.QUEUE_FLUSH, null);
                     }
-                }
+                        t1.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                            @Override
+                            public void onDone(String utteranceId) {
+                                Log.d("TAG", "utterance complete");
+                                isSpeaking = false;
+                                //captionTextView.setVisibility(View.INVISIBLE);
+                            }
+
+                            @Override
+                            public void onError(String utteranceId) {
+                            }
+
+                            @Override
+                            public void onStart(String utteranceId) {
+                                Log.d("Utterance started", "Utterance started");
+                            }
+                        });
+                    } else {
+                        Log.e("MainActivity", "Initilization Failed!");
+                    }
+
+
+
 
             }
         });
+
+        //t1.setOnUtteranceProgressListener(mProgressListener);
 
 
 
@@ -214,8 +246,12 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
 
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
 
-                if (isChecked) {
+                if (!isChecked) {
+                    algomusMode = true;
+                    Log.d("ALGOMUS MODE", String.valueOf(algomusMode));
                 } else {
+                    algomusMode = false;
+                    Log.d("ALGOMUS MODE", String.valueOf(algomusMode));
                 }
             }
         });
@@ -224,8 +260,13 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
 
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
 
-                if (isChecked) {
+                if (!isChecked) {
+                    showText = true;
+                    //captionTextView.setVisibility(View.VISIBLE);
                 } else {
+                    //showText = false;
+                    showText = true;
+                    //captionTextView.setVisibility(View.INVISIBLE);
                 }
             }
         });
@@ -235,9 +276,23 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
 
                 if (isChecked) {
-                } else {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
+                        audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0);
+                    } else {
+                        audioManager.setStreamMute(AudioManager.STREAM_MUSIC, false);
+                    }
+
+                }else{
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
+                        audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 1);
+                    } else {
+                        audioManager.setStreamMute(AudioManager.STREAM_MUSIC, true);
+                    }
+
                 }
             }
+
         });
 
     }
@@ -418,7 +473,7 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
 
-        Log.d("SURFACE CREATED","SURFACE CREATED");
+        Log.d("SURFACE CREATED", "SURFACE CREATED");
         try{
 
             if(camera!=null) {
@@ -554,12 +609,18 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
         return retVal;
     }
 
-    public void getImgurUrl(byte[] image)
+    public void getAlgomus(byte[] image)
             throws Exception {
-        new RetrieveCaption(getApplicationContext(), captionTextView, t1).execute(image);
+        new RetrieveCaption(getApplicationContext(), captionTextView, t1, showText).execute(image);
+
         //return "temp";
     }
 
+    public void getClarifai(byte[] image)
+            throws Exception {
+        new RetrieveTags(getApplicationContext(), captionTextView, t1, isSpeaking, showText).execute(image);
+
+    }
     @Override
     public void onLongPress(MotionEvent event) {
         Log.d(DEBUG_TAG, "onLongPress: " + event.toString());
@@ -580,8 +641,9 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
     @Override
     public boolean onSingleTapUp(MotionEvent event) {
         Log.d(DEBUG_TAG, "onSingleTapUp: " + event.toString());
-
         camera.takePicture(null, null, jpegCallback);
+        Log.d("Algomus", String.valueOf(algomusMode));
+
         return true;
     }
 
@@ -632,8 +694,21 @@ public class NetraMain extends AppCompatActivity implements SurfaceHolder.Callba
         //TODO: use this to changeMode - call appropriately from both swipeLeft/swipeRight or ToggleButton onCheckChanged
     }
 
-    @Override
-    public void onUtteranceCompleted(String utteranceId) {
-        Log.d("TAG", "utterance complete");
-    }
+    private UtteranceProgressListener mProgressListener = new UtteranceProgressListener() {
+        @Override
+        public void onStart(String utteranceId) {
+            Log.d("TAG", "utterance started");
+        } // Do nothing
+
+        @Override
+        public void onError(String utteranceId) {
+            Log.d("TAG", "utterance error");
+        } // Do nothing.
+
+        @Override
+        public void onDone(String utteranceId) {
+            Log.d("TAG", "utterance complete");
+            isSpeaking = false;
+        }
+    };
 }
